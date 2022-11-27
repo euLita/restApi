@@ -6,18 +6,18 @@ app = Flask(__name__)
 
 developers = [
     {
-        'id':'0',
-        'name':'Rapha',
-        'skills': ['Python', 'Flask']
-     },
-    {
         'id':'1',
         'name': 'Bianca',
         'skills': ['Python', 'Django']
-    }
+    },
+    {
+        'id':'14',
+        'name':'Rapha',
+        'skills': ['Python', 'Flask']
+     }
 ]
 
-@app.route('/dev/<int:id>/', methods= ['GET', 'PUT', 'DELETE'])
+@app.route('/dev/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def developer(id):
     if request.method == 'GET':
         try:
