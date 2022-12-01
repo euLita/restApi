@@ -17,9 +17,6 @@ tasks = [
     }
 ]
 
-def adicionar(new_task):
-    tasks.append(new_task)
-
 def _delete(id):
     # identifying index of item in the list
     id_procurado = None
@@ -48,6 +45,15 @@ def _alterar(id, status_new):
         return True
     return False
 
+def _insert(task_new):
+    # Validate data
+    for item in tasks:
+        if task_new['id'] == item['id']:
+            return False
+    # Insert data
+    tasks.append(task_new)
+    return True
+
 @app.route('/tasks/<int:id>/')
 def get_one(id):
     developer = tasks[id]
@@ -59,8 +65,10 @@ def get_all():
 
 @app.route('/tasks', methods=['POST'])
 def insert():
-    adicionar(request.get_json())
-    return jsonify(request.get_json())
+    if _insert(request.get_json()):
+        return jsonify(request.get_json())
+    else:
+        return Response({}, status=400)
 
 @app.route('/tasks/<int:id>/', methods=['DELETE'])
 def delete(id):
@@ -75,7 +83,6 @@ def update(id):
     if _alterar(id, task['status']):
         return jsonify({"mensage": f"Item {id} alterado com sucesso"}), 201
     return jsonify({"erro": f"Item  {id} não encontrado"}), 404
-
 
 if __name__ == '__main__':
     app.run(debug=True)
