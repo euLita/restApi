@@ -1,21 +1,9 @@
 from flask import Flask, jsonify, request, Response
+import json
 
 app = Flask(__name__)
-
-tasks = [
-    {
-        'id': 13,
-        'responsible': 'Gael',
-        'task': 'Develop method GET2',
-        'status': 'concluded'
-    },
-    {
-        'id': 18,
-        'responsible': 'Marci',
-        'task': 'Develop method POST',
-        'status': 'pending'
-    }
-]
+with open('data.json', 'r') as f:
+  tasks = json.load(f)
 
 def _delete(id):
     # identifying index of item in the list
