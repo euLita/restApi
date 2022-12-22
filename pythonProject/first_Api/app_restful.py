@@ -5,18 +5,6 @@ import json
 app = Flask(__name__)
 api = Api(app)
 
-developers = [
-    {
-        'id': 1,
-        'name': 'Faru',
-        'skills': ['Java', 'Git']
-    },
-    {
-        'id': 2,
-        'name': 'Gleu',
-        'skills': ['Php', 'Node']
-    }
-]
 with open('data.json', 'r') as f:
   tasks = json.load(f)
 
@@ -33,6 +21,33 @@ def _alterar(id, status_new):
         tasks[id_procurado]['status'] = status_new
         return True
     return False
+
+def _delete(id):
+    # identifying index of item in the list
+    id_procurado = None
+    ind = 0
+    for item in tasks:
+        if item["id"] == id:
+            id_procurado = ind
+        ind = ind + 1
+    # Deleting item
+    if (id_procurado is not None) and id_procurado < len(tasks):
+        del tasks[id_procurado]
+        return True
+    return False
+
+def _insert(task_new):
+    if not ('id' in task_new):
+        task_new['id'] = len(tasks)
+    # Validate data
+    for item in tasks:
+        if task_new['id'] == item['id']:
+            return False
+    # Insert data
+    tasks.append(task_new)
+    return True
+
+
 def _get_by_id(id):
     # identifying index of item in the list
     id_procurado = None
@@ -58,10 +73,20 @@ class developer(Resource):
             return {"mensage": f"Item {id} alterado com sucesso"}, 201
         return {"erro": f"Item  {id} não encontrado"}, 404
 
-    def delete(self):
-        return developers
+    def delete(self, id):
+        _delete(id)
+        return {'status':'sucess', 'mensage':'deleted record'}
+
+class list_developers(Resource):
+    def get(self):
+        return tasks
+    def post(self):
+        task = json.loads(request.data)
+        _insert(task)
+        return task
 
 api.add_resource(developer, '/dev/<int:id>/')
+api.add_resource(list_developers, '/dev/')
 
 if __name__ == '__main__':
     app.run(debug=True)
