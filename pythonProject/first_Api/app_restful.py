@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask_restful import Resource, Api
+from skills import skills
 import json
 
 app = Flask(__name__)
@@ -87,6 +88,8 @@ class list_developers(Resource):
 
 api.add_resource(developer, '/dev/<int:id>/')
 api.add_resource(list_developers, '/dev/')
+api.add_resource(skills, '/skills/')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
