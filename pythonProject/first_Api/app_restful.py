@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_restful import Resource, Api
-from skills import skills
+from skills import skills, skill
 import json
 
 app = Flask(__name__)
@@ -78,7 +78,7 @@ class developer(Resource):
         _delete(id)
         return {'status':'sucess', 'mensage':'deleted record'}
 
-class list_developers(Resource):
+class developers(Resource):
     def get(self):
         return tasks
     def post(self):
@@ -87,8 +87,9 @@ class list_developers(Resource):
         return task
 
 api.add_resource(developer, '/dev/<int:id>/')
-api.add_resource(list_developers, '/dev/')
+api.add_resource(developers, '/dev/')
 api.add_resource(skills, '/skills/')
+api.add_resource(skill, '/skills/<int:id>/')
 
 
 if __name__ == '__main__':
