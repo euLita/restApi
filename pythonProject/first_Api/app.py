@@ -1,9 +1,34 @@
 from flask import Flask, jsonify, request, Response
+import mariadb
 import json
 
 app = Flask(__name__)
 with open('data.json', 'r') as f:
   tasks = json.load(f)
+
+data = []
+with open('config.local.json') as f:
+    data = json.load(f)
+
+config = {
+    'host': data['host'],
+    'port': int(data['port']),
+    'user': data['user'],
+    'password': data['password'],
+    'database': data['database'],
+    'autocommit':True
+}
+
+def _all_tasks():   #here
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    cur.execute("select id, owner, status, task from tasks")
+    row_headers = [x[0] for x in cur.description]
+    rv = cur.fetchall()
+    json_data=[]
+    for result in rv:
+        json_data.append(dict(zip(row_headers,result)))
+    return json_data
 
 def _delete(id):
     # identifying index of item in the list
@@ -49,7 +74,8 @@ def get_one(id):
 
 @app.route('/tasks')
 def get_all():
-    return jsonify(tasks)
+    all_tasks = _all_tasks()
+    return jsonify(all_tasks)
 
 @app.route('/tasks', methods=['POST'])
 def insert():

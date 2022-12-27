@@ -1,3 +1,4 @@
 data.json
 data_skills.json
 __pycache__/
+config.local.json

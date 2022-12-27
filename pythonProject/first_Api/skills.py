@@ -4,6 +4,8 @@ import json
 with open('data_skills.json', 'r') as file:
   list_skills = json.load(file)
 
+print('comecou',list_skills)
+
 def _alterar(id, name_new):
     # identifying index of item in the list
     id_procurado = None
@@ -15,6 +17,8 @@ def _alterar(id, name_new):
     # change status item
     if (id_procurado is not None) and id_procurado <= len(list_skills):
         list_skills[id_procurado]['name'] = name_new
+        with open('data_skills.json', 'w') as file:
+            json.dump(list_skills, file)
         return True
     return False
 
@@ -27,6 +31,9 @@ def _insert(skill_new):
             return False
     # Insert data
     list_skills.append(skill_new)
+    print('_inserir', list_skills)
+    with open('data_skills.json', 'w') as file:
+        json.dump(list_skills, file)
     return True
 
 def _delete(id):
@@ -40,6 +47,8 @@ def _delete(id):
     # Deleting item
     if (id_procurado is not None) and id_procurado < len(list_skills):
         del list_skills[id_procurado]
+        with open('data_skills.json', 'w') as file:
+            json.dump(list_skills, file)
         return True
     return False
 
