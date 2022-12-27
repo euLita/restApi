@@ -19,6 +19,20 @@ config = {
     'autocommit':True
 }
 
+def _get_by_id(id):
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    id_contato = id
+    cur.execute(f"SELECT id, owner, status, task FROM tasks WHERE id = {id_contato};")
+    row_headers = [x[0] for x in cur.description]
+    rv = cur.fetchall()
+    if not(len(rv)==0):
+        print(rv[0])
+        tasks = dict(zip(row_headers, rv[0]))
+        return tasks
+    else:
+        return None
+
 def _all_tasks():   #here
     conn = mariadb.connect(**config)
     cur = conn.cursor()
@@ -44,7 +58,7 @@ def _delete(id):
         return True
     return False
 
-def _alterar(id, status_new):
+def _alterar(id, status_new) :
     # identifying index of item in the list
     id_procurado = None
     ind = 0
@@ -69,8 +83,10 @@ def _insert(task_new):
 
 @app.route('/tasks/<int:id>/')
 def get_one(id):
-    developer = tasks[id]
-    return jsonify(developer)
+    item = _get_by_id(id)
+    if type(item) is dict:    #
+        return jsonify(item)
+    return Response({}, status=404)
 
 @app.route('/tasks')
 def get_all():
