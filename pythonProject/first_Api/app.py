@@ -73,13 +73,18 @@ def _alterar(id, status_new) :
     return False
 
 def _insert(task_new):
-    # Validate data
-    for item in tasks:
-        if task_new['id'] == item['id']:
-            return False
-    # Insert data
-    tasks.append(task_new)
-    return True
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql = f"""INSERT INTO restapi.tasks 
+        (id,owner,status,task) values
+        (null,
+        '{task_new['owner']}',
+        '{task_new['status']}',
+        '{task_new['task']}'
+        );"""
+    print(sql)
+    cur.execute(sql)
+    conn.close()
 
 @app.route('/tasks/<int:id>/')
 def get_one(id):
