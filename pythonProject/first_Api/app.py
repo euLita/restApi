@@ -59,18 +59,42 @@ def _delete(id):
     return False
 
 def _alterar(id, status_new) :
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in tasks:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # change status item
-    if (id_procurado is not None) and id_procurado <= len(tasks):
-        tasks[id_procurado]['status'] = status_new
-        return True
-    return False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    id_contato = int(request.args.get('id', ''))
+    sql_consulta = f"select id, nome,telefone, cpf, rg, datanasc, genero from contatos WHERE id = {id_contato};"
+    cur.execute(sql_consulta)
+    row_headers=[x[0] for x in cur.description]
+    rv = cur.fetchall()
+    if request.method == 'POST':
+        sql = f"""UPDATE contato.contatos SET nome = '{request.form['nome_completo']}',
+        datanasc = '{request.form['data_de_nascimento']}',
+        cpf = '{request.form['cpf']}', 
+        telefone = '{request.form['telefone']}',
+        rg = '{request.form['rg']}',
+        genero = '{request.form['genero']}'
+        WHERE id = {id_contato};"""
+        print(sql)
+        cur.execute(sql)
+        cur.execute(sql_consulta)
+        rv = cur.fetchall()
+    conn.close()
+    print('rv aqui',rv)
+    contato=dict(zip(row_headers,rv[0]))
+    return contato
+
+    # # identifying index of item in the list
+    # id_procurado = None
+    # ind = 0
+    # for item in tasks:
+    #     if item["id"] == id:
+    #         id_procurado = ind
+    #     ind = ind + 1
+    # # change status item
+    # if (id_procurado is not None) and id_procurado <= len(tasks):
+    #     tasks[id_procurado]['status'] = status_new
+    #     return True
+    # return False
 
 def _insert(task_new):
     conn = mariadb.connect(**config)
