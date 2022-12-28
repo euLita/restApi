@@ -45,56 +45,36 @@ def _all_tasks():   #here
     return json_data
 
 def _delete(id):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in tasks:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # Deleting item
-    if (id_procurado is not None) and id_procurado < len(tasks):
-        del tasks[id_procurado]
-        return True
-    return False
-
-def _alterar(id, status_new) :
+    apagou = False
     conn = mariadb.connect(**config)
     cur = conn.cursor()
-    id_contato = int(request.args.get('id', ''))
-    sql_consulta = f"select id, nome,telefone, cpf, rg, datanasc, genero from contatos WHERE id = {id_contato};"
+    sql_consulta = f"SELECT id, owner, status, task FROM tasks WHERE id = {id};"
     cur.execute(sql_consulta)
-    row_headers=[x[0] for x in cur.description]
     rv = cur.fetchall()
-    if request.method == 'POST':
-        sql = f"""UPDATE contato.contatos SET nome = '{request.form['nome_completo']}',
-        datanasc = '{request.form['data_de_nascimento']}',
-        cpf = '{request.form['cpf']}', 
-        telefone = '{request.form['telefone']}',
-        rg = '{request.form['rg']}',
-        genero = '{request.form['genero']}'
-        WHERE id = {id_contato};"""
-        print(sql)
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando apagar existe
+        sql = f"""DELETE FROM restapi.tasks
+        WHERE id = {id};"""
         cur.execute(sql)
-        cur.execute(sql_consulta)
-        rv = cur.fetchall()
+        apagou = True
     conn.close()
-    print('rv aqui',rv)
-    contato=dict(zip(row_headers,rv[0]))
-    return contato
+    return apagou
 
-    # # identifying index of item in the list
-    # id_procurado = None
-    # ind = 0
-    # for item in tasks:
-    #     if item["id"] == id:
-    #         id_procurado = ind
-    #     ind = ind + 1
-    # # change status item
-    # if (id_procurado is not None) and id_procurado <= len(tasks):
-    #     tasks[id_procurado]['status'] = status_new
-    #     return True
-    # return False
+
+def _alterar(id, status_new):
+    alterou = False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql_consulta = f"SELECT id, owner, status, task FROM tasks WHERE id = {id};"
+    cur.execute(sql_consulta)
+    rv = cur.fetchall()
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando alterar existe
+        sql = f"""UPDATE restapi.tasks SET
+        status = '{status_new}'
+        WHERE id = {id};"""
+        cur.execute(sql)
+        alterou = True
+    conn.close()
+    return alterou
 
 def _insert(task_new):
     conn = mariadb.connect(**config)
