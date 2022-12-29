@@ -1,60 +1,83 @@
 from flask_restful import Resource, request
 import json
+import mariadb
 
 with open('data_skills.json', 'r') as file:
   list_skills = json.load(file)
 
+data = []
+with open('config.local.json') as f:
+    data = json.load(f)
+
 print('comecou',list_skills)
 
-def _alterar(id, name_new):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in list_skills:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # change status item
-    if (id_procurado is not None) and id_procurado <= len(list_skills):
-        list_skills[id_procurado]['name'] = name_new
-        with open('data_skills.json', 'w') as file:
-            json.dump(list_skills, file)
-        return True
-    return False
+config = {
+    'host': data['host'],
+    'port': int(data['port']),
+    'user': data['user'],
+    'password': data['password'],
+    'database': data['database'],
+    'autocommit':True
+}
+
+def _all_skills():
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM skills")
+    row_headers = [x[0] for x in cur.description]
+    rv = cur.fetchall()
+    data_tasks=[]
+    for result in rv:
+        data_tasks.append(dict(zip(row_headers,result)))
+    return data_tasks
 
 def _insert(skill_new):
-    if not ('id' in skill_new):
-        skill_new['id'] = len(list_skills)
-    # Validate data
-    for item in list_skills:
-        if skill_new['id'] == item['id']:
-            return False
-    # Insert data
-    list_skills.append(skill_new)
-    print('_inserir', list_skills)
-    with open('data_skills.json', 'w') as file:
-        json.dump(list_skills, file)
-    return True
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql = f"""INSERT INTO restapi.skills 
+            (id,name) values
+            (null,
+            '{skill_new['name']}'
+            );"""
+    print(sql)
+    cur.execute(sql)
+    conn.close()
+
+def _alterar(id, name_new):
+    alterou = False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql_consulta = f"SELECT id, name FROM skills WHERE id = {id};"
+    cur.execute(sql_consulta)
+    rv = cur.fetchall()
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando alterar existe
+        sql = f"""UPDATE restapi.skills SET
+        name = '{name_new}'
+        WHERE id = {id};"""
+        cur.execute(sql)
+        alterou = True
+    conn.close()
+    return alterou
 
 def _delete(id):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in list_skills:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # Deleting item
-    if (id_procurado is not None) and id_procurado < len(list_skills):
-        del list_skills[id_procurado]
-        with open('data_skills.json', 'w') as file:
-            json.dump(list_skills, file)
-        return True
-    return False
+    apagou = False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql_consulta = f"SELECT id, name FROM skills WHERE id = {id};"
+    cur.execute(sql_consulta)
+    rv = cur.fetchall()
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando apagar existe
+        sql = f"""DELETE FROM restapi.skills
+        WHERE id = {id};"""
+        cur.execute(sql)
+        apagou = True
+    conn.close()
+    return apagou
 
 class skills(Resource):
     def get(self):
-        return list_skills
+        all_skills = _all_skills()
+        return all_skills
 
     def post(self):
         skill = json.loads(request.data)
@@ -62,17 +85,18 @@ class skills(Resource):
         return skill
 
 def _get_skill(id):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in list_skills:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # change status item
-    if (id_procurado is not None) and id_procurado <= len(list_skills):
-        return list_skills[id_procurado]
-    return None
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    id_contato = id
+    cur.execute(f"SELECT id, name FROM skills WHERE id = {id_contato};")
+    row_headers = [x[0] for x in cur.description]
+    rv = cur.fetchall()
+    if not (len(rv) == 0):
+        print(rv[0])
+        tasks = dict(zip(row_headers, rv[0]))
+        return tasks
+    else:
+        return None
 
 class skill(Resource):
     def get(self, id):
@@ -86,5 +110,11 @@ class skill(Resource):
         return {"erro": f"Item  {id} não encontrado"}, 404
 
     def delete(self, id):
-        _delete(id)
-        return {'status':'sucess', 'mensage':'deleted record'}
+        if _delete(id):
+            return {'status':'sucess', 'mensage':'deleted record'}
+        return {"erro": f"Item  {id} não encontrado"}, 404
+
+    # def delete(self, id):
+    #     if _delete(id):
+    #         return {'status':'sucess', 'mensage':'deleted record'}
+    #     return {"erro": f"Item  {id} não encontrado"}, 404
