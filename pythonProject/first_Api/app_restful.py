@@ -7,9 +7,6 @@ import json
 app = Flask(__name__)
 api = Api(app)
 
-with open('data.json', 'r') as f:
-  tasks = json.load(f)
-
 data = []
 with open('config.local.json') as f:
     data = json.load(f)
@@ -23,33 +20,48 @@ config = {
     'autocommit':True
 }
 
+
+def _all_tasks():
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    cur.execute("select id, owner, status, task from tasks")
+    row_headers = [x[0] for x in cur.description]
+    rv = cur.fetchall()
+    data_tasks=[]
+    for result in rv:
+        data_tasks.append(dict(zip(row_headers,result)))
+    return data_tasks
+
 def _alterar(id, status_new):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in tasks:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # change status item
-    if (id_procurado is not None) and id_procurado <= len(tasks):
-        tasks[id_procurado]['status'] = status_new
-        return True
-    return False
+    alterou = False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql_consulta = f"SELECT id, owner, status, task FROM tasks WHERE id = {id};"
+    cur.execute(sql_consulta)
+    rv = cur.fetchall()
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando alterar existe
+        sql = f"""UPDATE restapi.tasks SET
+        status = '{status_new}'
+        WHERE id = {id};"""
+        cur.execute(sql)
+        alterou = True
+    conn.close()
+    return alterou
 
 def _delete(id):
-    # identifying index of item in the list
-    id_procurado = None
-    ind = 0
-    for item in tasks:
-        if item["id"] == id:
-            id_procurado = ind
-        ind = ind + 1
-    # Deleting item
-    if (id_procurado is not None) and id_procurado < len(tasks):
-        del tasks[id_procurado]
-        return True
-    return False
+    apagou = False
+    conn = mariadb.connect(**config)
+    cur = conn.cursor()
+    sql_consulta = f"SELECT id, owner, status, task FROM tasks WHERE id = {id};"
+    cur.execute(sql_consulta)
+    rv = cur.fetchall()
+    if len(rv) > 0:    # Retorne true se o item que o usuario esta tentando apagar existe
+        sql = f"""DELETE FROM restapi.tasks
+        WHERE id = {id};"""
+        cur.execute(sql)
+        apagou = True
+    conn.close()
+    return apagou
 
 def _insert(task_new):
     conn = mariadb.connect(**config)
@@ -91,12 +103,13 @@ class developer(Resource):
         return {"erro": f"Item  {id} não encontrado"}, 404
 
     def delete(self, id):
-        _delete(id)
-        return {'status':'sucess', 'mensage':'deleted record'}
-
+        if _delete(id):
+            return {'status':'sucess', 'mensage':'deleted record'}
+        return {"erro": f"Item  {id} não encontrado"}, 404
 class developers(Resource):
     def get(self):
-        return tasks
+        all_tasks = _all_tasks()
+        return all_tasks
     def post(self):
         task = json.loads(request.data)
         _insert(task)
@@ -106,7 +119,6 @@ api.add_resource(developer, '/dev/<int:id>/')
 api.add_resource(developers, '/dev/')
 api.add_resource(skills, '/skills/')
 api.add_resource(skill, '/skills/<int:id>/')
-
 
 if __name__ == '__main__':
     app.run(debug=True)
